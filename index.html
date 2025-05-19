@@ -541,7 +541,7 @@
             
             // カードを削除する関数
             function deleteCard(index) {
-                if (confirm('このカードを削除してもよろしいですか？')) {
+                if (confirm('このカードを削除してもよろしいですか...?')) {
                     let savedCards = JSON.parse(localStorage.getItem('savedCards')) || [];
                     savedCards.splice(index, 1);
                     localStorage.setItem('savedCards', JSON.stringify(savedCards));
