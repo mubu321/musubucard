@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>むすぶカード発行</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        h1 {
+            color: #e0e0e0;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #0073e6, 0 0 20px #0073e6;
+        }
+        .form-container {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #b0b0b0;
+        }
+        input, textarea, button, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e0e0e0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 1em;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        button {
+            background-color: #4169E1;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background-color: #1E90FF;
+            transform: translateY(-2px);
+            box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+        }
+        .card-preview {
+            width: 100%;
+            margin-top: 30px;
+            display: none;
+        }
+        @keyframes sparkle {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+        .card {
+            /* クレジットカードと同じサイズ (85.60mm × 53.98mm) */
+            width: 85.6mm;
+            height: 53.98mm;
+            background-color: #808080; /* デフォルトの灰色（中） */
+            background-image: linear-gradient(45deg, 
+                rgba(255,255,255,0.1) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255,255,255,0.1) 50%, 
+                rgba(255,255,255,0.1) 75%, 
+                transparent 75%, 
+                transparent);
+            background-size: 200% 200%;
+            animation: sparkle 3s linear infinite;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(255, 255, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            position: relative;
+            margin: 0 auto;
+            overflow: hidden;
+        }
+        .card.light-gray {
+            background-color: #A9A9A9;
+        }
+        .card.medium-gray {
+            background-color: #808080;
+        }
+        .card.dark-gray {
+            background-color: #606060;
+        }
+        .card.darker-gray {
+            background-color: #404040;
+        }
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0) 40%,
+                rgba(255, 255, 255, 0.4) 50%,
+                rgba(255, 255, 255, 0) 60%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(30deg);
+            animation: shine 3s infinite;
+            pointer-events: none;
+        }
+        @keyframes shine {
+            0% { transform: translateX(-100%) rotate(30deg); }
+            30% { transform: translateX(100%) rotate(30deg); }
+            100% { transform: translateX(100%) rotate(30deg); }
+        }
+        .card-top {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .card-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
+        }
+        .card-info {
+            flex-grow: 1;
+            margin-left: 15px;
+        }
+        .card-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+        }
+        .card-id {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        .card-bio {
+            font-size: 11px;
+            margin-top: 5px;
+            height: 40px;
+            overflow-y: auto;
+            padding: 2px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        .download-btn {
+            background-color: #4CAF50;
+        }
+        .download-btn:hover {
+            background-color: #45a049;
+        }
+        .save-image-btn {
+            background-color: #9C27B0;
+        }
+        .save-image-btn:hover {
+            background-color: #7B1FA2;
+        }
+        .placeholder-img {
+            background-color: #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #aaa;
+            font-size: 12px;
+        }
+        .saved-cards {
+            margin-top: 30px;
+            width: 100%;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+        .saved-cards h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.3);
+        }
+        .cards-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+        .saved-card {
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 10px;
+        }
+        .saved-card:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 0 20px rgba(65, 105, 225, 0.6);
+        }
+        .delete-card {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(255, 0, 0, 0.7);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* スクロールバーのスタイル */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2a2a2a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>むすぶカード発行</h1>
+        
+        <div class="form-container">
+            <div class="form-group">
+                <label for="name">名前</label>
+                <input type="text" id="name" placeholder="名前を入力してください" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="bio">自己紹介</label>
+                <textarea id="bio" placeholder="自己紹介を入力してください（100文字まで）" maxlength="100"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="card-color">カードの色</label>
+                <select id="card-color">
+                    <option value="light-gray">ライトグレー</option>
+                    <option value="medium-gray" selected>ミディアムグレー</option>
+                    <option value="dark-gray">ダークグレー</option>
+                    <option value="darker-gray">ダーカーグレー</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="image">プロフィール画像</label>
+                <input type="file" id="image" accept="image/*">
+            </div>
+            
+            <button id="generate-card">むすぶカードを発行する</button>
+        </div>
+        
+        <div class="card-preview" id="card-preview">
+            <div class="card" id="card-element">
+                <div class="card-top">
+                    <div id="card-image-container">
+                        <img src="/api/placeholder/100/100" alt="プロフィール写真" class="card-image" id="card-image">
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name" id="card-name">名前が表示されます</div>
+                        <div class="card-id" id="card-id">ID: ########</div>
+                    </div>
+                </div>
+                <div class="card-bio" id="card-bio">ここに自己紹介が表示されます...</div>
+            </div>
+            
+            <div class="button-group">
+                <button class="download-btn" id="save-card">カードを保存する</button>
+                <button class="save-image-btn" id="save-image">画像として保存</button>
+            </div>
+        </div>
+        
+        <div class="saved-cards" id="saved-cards">
+            <h2>保存したカード</h2>
+            <div class="cards-container" id="cards-container"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('name');
+            const bioInput = document.getElementById('bio');
+            const cardColorSelect = document.getElementById('card-color');
+            const imageInput = document.getElementById('image');
+            const generateBtn = document.getElementById('generate-card');
+            const cardPreview = document.getElementById('card-preview');
+            const cardElement = document.getElementById('card-element');
+            const cardName = document.getElementById('card-name');
+            const cardId = document.getElementById('card-id');
+            const cardBio = document.getElementById('card-bio');
+            const cardImage = document.getElementById('card-image');
+            const saveBtn = document.getElementById('save-card');
+            const saveImageBtn = document.getElementById('save-image');
+            const savedCardsContainer = document.getElementById('saved-cards');
+            const cardsContainer = document.getElementById('cards-container');
+            
+            // ローカルストレージから保存されたカードを読み込む
+            loadSavedCards();
+            
+            // 画像プレビュー
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        cardImage.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // カードの色を変更
+            cardColorSelect.addEventListener('change', function() {
+                // すべてのクラスを削除
+                cardElement.classList.remove('light-gray', 'medium-gray', 'dark-gray', 'darker-gray');
+                // 選択されたクラスを追加
+                cardElement.classList.add(this.value);
+            });
+            
+            // カード生成
+            generateBtn.addEventListener('click', function() {
+                const name = nameInput.value.trim();
+                const bio = bioInput.value.trim();
+                
+                if (!name) {
+                    alert('名前を入力してください');
+                    return;
+                }
+                
+                // カードの名前を設定
+                cardName.textContent = name;
+                
+                // 自己紹介を設定
+                cardBio.textContent = bio || "自己紹介はありません";
+                
+                // ランダムなIDを生成
+                const randomId = Math.floor(100000 + Math.random() * 900000);
+                cardId.textContent = `ID: ${randomId}`;
+                
+                // カードの色を設定
+                cardElement.classList.remove('light-gray', 'medium-gray', 'dark-gray', 'darker-gray');
+                cardElement.classList.add(cardColorSelect.value);
+                
+                // カードを表示
+                cardPreview.style.display = 'block';
+                
+                // むすぶエフェクトをリセット
+                cardElement.style.animation = 'none';
+                setTimeout(function() {
+                    cardElement.style.animation = 'sparkle 3s linear infinite';
+                }, 10);
+            });
+            
+            // カードの保存機能
+            saveBtn.addEventListener('click', function() {
+                const name = cardName.textContent;
+                const id = cardId.textContent;
+                const bio = cardBio.textContent;
+                const imageSrc = cardImage.src;
+                const cardColor = cardColorSelect.value;
+                
+                // カード情報をオブジェクトとして保存
+                const card = {
+                    name: name,
+                    id: id,
+                    bio: bio,
+                    image: imageSrc,
+                    color: cardColor,
+                    timestamp: new Date().getTime()
+                };
+                
+                // ローカルストレージから既存のカードを取得
+                let savedCards = JSON.parse(localStorage.getItem('savedCards')) || [];
+                
+                // 新しいカードを追加
+                savedCards.push(card);
+                
+                // ローカルストレージに保存
+                localStorage.setItem('savedCards', JSON.stringify(savedCards));
+                
+                // 保存したカードを表示
+                loadSavedCards();
+                
+                alert('むすぶカードを保存しました！✨');
+            });
+            
+            // カードを画像として保存する機能
+            saveImageBtn.addEventListener('click', function() {
+                // html2canvasライブラリをロード（CDNから）
+                if (!window.html2canvas) {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                    script.onload = convertCardToImage;
+                    document.head.appendChild(script);
+                } else {
+                    convertCardToImage();
+                }
+            });
+            
+            // カードを画像に変換する関数
+            function convertCardToImage() {
+                html2canvas(cardElement).then(canvas => {
+                    // キャンバスを画像データURLに変換
+                    const imageData = canvas.toDataURL('image/png');
+                    
+                    // ダウンロードリンクを作成
+                    const link = document.createElement('a');
+                    link.href = imageData;
+                    link.download = `むすぶカード_${cardName.textContent.replace(/\s+/g, '_')}_${Date.now()}.png`;
+                    
+                    // リンクをクリックしてダウンロード
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+            
+            // 保存したカードを読み込む関数
+            function loadSavedCards() {
+                const savedCards = JSON.parse(localStorage.getItem('savedCards')) || [];
+                
+                if (savedCards.length > 0) {
+                    savedCardsContainer.style.display = 'block';
+                    
+                    // カードコンテナをクリア
+                    cardsContainer.innerHTML = '';
+                    
+                    // 保存された各カードを表示
+                    savedCards.forEach((card, index) => {
+                        const cardElement = document.createElement('div');
+                        cardElement.className = `card saved-card ${card.color || 'medium-gray'}`;
+                        cardElement.style.position = 'relative';
+                        
+                        cardElement.innerHTML = `
+                            <div class="card-top">
+                                <img src="${card.image}" alt="プロフィール写真" class="card-image">
+                                <div class="card-info">
+                                    <div class="card-name">${card.name}</div>
+                                    <div class="card-id">${card.id}</div>
+                                </div>
+                            </div>
+                            <div class="card-bio">${card.bio || "自己紹介はありません"}</div>
+                            <button class="delete-card" data-index="${index}">×</button>
+                        `;
+                        
+                        cardsContainer.appendChild(cardElement);
+                    });
+                    
+                    // 削除ボタンにイベントリスナーを追加
+                    document.querySelectorAll('.delete-card').forEach(button => {
+                        button.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const index = parseInt(this.getAttribute('data-index'));
+                            deleteCard(index);
+                        });
+                    });
+                    
+                    // 保存されたカードをクリックしたら詳細を表示
+                    document.querySelectorAll('.saved-card').forEach(card => {
+                        card.addEventListener('click', function() {
+                            const index = this.querySelector('.delete-card').getAttribute('data-index');
+                            const cards = JSON.parse(localStorage.getItem('savedCards')) || [];
+                            const selectedCard = cards[index];
+                            
+                            // 選択したカードを詳細表示
+                            cardName.textContent = selectedCard.name;
+                            cardId.textContent = selectedCard.id;
+                            cardBio.textContent = selectedCard.bio || "自己紹介はありません";
+                            cardImage.src = selectedCard.image;
+                            
+                            // カードの色を設定
+                            cardElement.classList.remove('light-gray', 'medium-gray', 'dark-gray', 'darker-gray');
+                            cardElement.classList.add(selectedCard.color || 'medium-gray');
+                            
+                            // カラーセレクトボックスも更新
+                            cardColorSelect.value = selectedCard.color || 'medium-gray';
+                            
+                            cardPreview.style.display = 'block';
+                        });
+                    });
+                } else {
+                    savedCardsContainer.style.display = 'none';
+                }
+            }
+            
+            // カードを削除する関数
+            function deleteCard(index) {
+                if (confirm('このカードを削除してもよろしいですか？')) {
+                    let savedCards = JSON.parse(localStorage.getItem('savedCards')) || [];
+                    savedCards.splice(index, 1);
+                    localStorage.setItem('savedCards', JSON.stringify(savedCards));
+                    loadSavedCards();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
